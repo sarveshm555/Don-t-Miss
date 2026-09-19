@@ -7,6 +7,11 @@ class DateTimeUtils {
   static final DateFormat _dayMonthYearFormat = DateFormat('d MMMM yyyy');
   static final DateFormat _shortDateFormat = DateFormat('d MMM yyyy');
 
+  /// Checks if two DateTimes share the same calendar day (ignoring time components).
+  static bool isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
   /// Formats a date to "Today", "Tomorrow", "Yesterday", or "18 September 2026".
   static String formatDate(DateTime date) {
     final now = DateTime.now();

@@ -42,10 +42,24 @@ class Task {
     );
   }
 
-  /// Checks if this task has passed its due date & time and is not completed.
-  bool get isOverdue {
-    return !isCompleted && fullDueDateTime.isBefore(DateTime.now());
+  /// Checks if this task has passed its due date & time relative to [referenceTime] and is not completed.
+  bool isOverdueAt(DateTime referenceTime) {
+    return !isCompleted && fullDueDateTime.isBefore(referenceTime);
   }
+
+  /// Checks if this task has passed its due date & time and is not completed.
+  bool get isOverdue => isOverdueAt(DateTime.now());
+
+  /// Checks if this task is due on the specified calendar [day] and is not completed.
+  bool isDueOnDay(DateTime day) {
+    return !isCompleted &&
+        dueDate.year == day.year &&
+        dueDate.month == day.month &&
+        dueDate.day == day.day;
+  }
+
+  /// Checks if this task is due on today's calendar date and is not completed.
+  bool get isDueToday => isDueOnDay(DateTime.now());
 
   /// Checks if this task repeats on a schedule.
   bool get isRecurring => recurrence != Recurrence.none;

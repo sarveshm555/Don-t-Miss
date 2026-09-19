@@ -7,14 +7,17 @@ import '../services/notification_service.dart';
 enum TaskFilter {
   all,
   pending,
-  completed,
+  today,
+  overdue,
   highPriority,
+  completed,
 }
 
 /// Central state manager for task CRUD operations, filters, search, and notification synchronization.
 class TaskProvider extends ChangeNotifier {
   final TaskRepository _repository;
   final NotificationService _notificationService;
+  final DateTime Function() _clock;
 
   List<Task> _tasks = [];
   bool _isLoading = true;
@@ -24,8 +27,10 @@ class TaskProvider extends ChangeNotifier {
   TaskProvider({
     TaskRepository? repository,
     NotificationService? notificationService,
+    DateTime Function()? clock,
   })  : _repository = repository ?? LocalTaskRepository(),
-        _notificationService = notificationService ?? NotificationService.instance {
+        _notificationService = notificationService ?? NotificationService.instance,
+        _clock = clock ?? DateTime.now {
     loadTasks();
   }
 
@@ -40,22 +45,33 @@ class TaskProvider extends ChangeNotifier {
   int get completedCount => _tasks.where((t) => t.isCompleted).length;
   int get highPriorityCount =>
       _tasks.where((t) => !t.isCompleted && t.priority == Priority.high).length;
+  int get todayCount =>
+      _tasks.where((t) => t.isDueOnDay(_clock())).length;
+  int get overdueCount =>
+      _tasks.where((t) => t.isOverdueAt(_clock())).length;
 
   /// Returns tasks filtered by both the selected category and search query.
   List<Task> get filteredTasks {
+    final now = _clock();
     return _tasks.where((task) {
-      // 1. Filter by status / priority
+      // 1. Filter by status / priority / time
       switch (_selectedFilter) {
         case TaskFilter.all:
           break;
         case TaskFilter.pending:
           if (task.isCompleted) return false;
           break;
-        case TaskFilter.completed:
-          if (!task.isCompleted) return false;
+        case TaskFilter.today:
+          if (!task.isDueOnDay(now)) return false;
+          break;
+        case TaskFilter.overdue:
+          if (!task.isOverdueAt(now)) return false;
           break;
         case TaskFilter.highPriority:
-          if (task.priority != Priority.high) return false;
+          if (task.isCompleted || task.priority != Priority.high) return false;
+          break;
+        case TaskFilter.completed:
+          if (!task.isCompleted) return false;
           break;
       }
 

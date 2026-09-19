@@ -147,6 +147,25 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 8),
                             _buildFilterChip(
                               context: context,
+                              label: 'Today (${provider.todayCount})',
+                              filter: TaskFilter.today,
+                              selectedFilter: provider.selectedFilter,
+                              onSelected: () =>
+                                  provider.setFilter(TaskFilter.today),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFilterChip(
+                              context: context,
+                              label: 'Overdue (${provider.overdueCount})',
+                              filter: TaskFilter.overdue,
+                              selectedFilter: provider.selectedFilter,
+                              isUrgent: provider.overdueCount > 0,
+                              onSelected: () =>
+                                  provider.setFilter(TaskFilter.overdue),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFilterChip(
+                              context: context,
                               label:
                                   'High Priority (${provider.highPriorityCount})',
                               filter: TaskFilter.highPriority,
@@ -178,12 +197,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: EmptyStateView(
                     title: provider.searchQuery.isNotEmpty
                         ? 'No matching reminders'
-                        : (provider.selectedFilter == TaskFilter.completed
-                            ? 'No completed reminders'
-                            : 'All caught up!'),
+                        : _getEmptyStateTitle(provider.selectedFilter),
                     message: provider.searchQuery.isNotEmpty
                         ? 'Try searching with different keywords.'
-                        : 'No reminders in this view. Tap the button below to add one.',
+                        : _getEmptyStateMessage(provider.selectedFilter),
                     actionLabel: provider.searchQuery.isNotEmpty
                         ? 'Clear Search'
                         : 'Add Reminder',
@@ -229,37 +246,80 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  String _getEmptyStateTitle(TaskFilter filter) {
+    switch (filter) {
+      case TaskFilter.all:
+        return 'All caught up!';
+      case TaskFilter.pending:
+        return 'No pending reminders';
+      case TaskFilter.today:
+        return 'Nothing due today';
+      case TaskFilter.overdue:
+        return 'No overdue reminders';
+      case TaskFilter.highPriority:
+        return 'No high priority reminders';
+      case TaskFilter.completed:
+        return 'No completed reminders';
+    }
+  }
+
+  String _getEmptyStateMessage(TaskFilter filter) {
+    switch (filter) {
+      case TaskFilter.all:
+        return 'No reminders in this view. Tap the button below to add one.';
+      case TaskFilter.pending:
+        return 'You have no pending reminders to complete.';
+      case TaskFilter.today:
+        return 'You have no reminders scheduled for today.';
+      case TaskFilter.overdue:
+        return 'Great job! None of your reminders are overdue.';
+      case TaskFilter.highPriority:
+        return 'No pending high-priority reminders at the moment.';
+      case TaskFilter.completed:
+        return 'Completed reminders will appear here.';
+    }
+  }
+
   Widget _buildFilterChip({
     required BuildContext context,
     required String label,
     required TaskFilter filter,
     required TaskFilter selectedFilter,
     required VoidCallback onSelected,
+    bool isUrgent = false,
   }) {
     final isSelected = filter == selectedFilter;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final Color activeColor = isUrgent ? AppColors.error : AppColors.primary;
+    final Color unselectedBorder = isUrgent
+        ? AppColors.error.withValues(alpha: 0.5)
+        : (isDark ? AppColors.borderDark : AppColors.borderLight);
+    final Color unselectedTextColor = isUrgent
+        ? (isDark ? const Color(0xFFF87171) : AppColors.error)
+        : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight);
+    final Color? backgroundColor = (!isSelected && isUrgent)
+        ? (isDark
+            ? AppColors.error.withValues(alpha: 0.15)
+            : AppColors.priorityHighBg)
+        : null;
 
     return FilterChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onSelected(),
       showCheckmark: false,
-      selectedColor: AppColors.primary,
+      selectedColor: activeColor,
+      backgroundColor: backgroundColor,
       labelStyle: TextStyle(
-        color: isSelected
-            ? Colors.white
-            : (isDark
-                ? AppColors.textSecondaryDark
-                : AppColors.textSecondaryLight),
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+        color: isSelected ? Colors.white : unselectedTextColor,
+        fontWeight: (isSelected || isUrgent) ? FontWeight.bold : FontWeight.w500,
         fontSize: 12,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isSelected
-              ? AppColors.primary
-              : (isDark ? AppColors.borderDark : AppColors.borderLight),
+          color: isSelected ? activeColor : unselectedBorder,
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
