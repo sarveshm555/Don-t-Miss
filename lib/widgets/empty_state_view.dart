@@ -8,6 +8,7 @@ class EmptyStateView extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onActionPressed;
   final String? actionLabel;
+  final IconData? actionIcon;
 
   const EmptyStateView({
     super.key,
@@ -16,6 +17,7 @@ class EmptyStateView extends StatelessWidget {
     this.icon = Icons.notifications_none_rounded,
     this.onActionPressed,
     this.actionLabel,
+    this.actionIcon,
   });
 
   @override
@@ -70,7 +72,7 @@ class EmptyStateView extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: onActionPressed,
-                icon: const Icon(Icons.add, size: 18),
+                icon: Icon(actionIcon ?? Icons.add, size: 18),
                 label: Text(actionLabel!),
               ),
             ],

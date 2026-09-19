@@ -9,8 +9,32 @@ import '../widgets/task_stats_card.dart';
 import 'add_edit_task_screen.dart';
 
 /// The main dashboard view displaying task statistics, filters, search, and list.
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _clearSearch(TaskProvider provider) {
+    _searchController.clear();
+    provider.clearSearch();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +105,7 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       // Search TextField
                       TextField(
+                        controller: _searchController,
                         onChanged: provider.setSearchQuery,
                         decoration: InputDecoration(
                           hintText: 'Search tasks, deadlines, keywords...',
@@ -88,7 +113,7 @@ class HomeScreen extends StatelessWidget {
                           suffixIcon: provider.searchQuery.isNotEmpty
                               ? IconButton(
                                   icon: const Icon(Icons.clear, size: 18),
-                                  onPressed: () => provider.setSearchQuery(''),
+                                  onPressed: () => _clearSearch(provider),
                                 )
                               : null,
                           contentPadding: const EdgeInsets.symmetric(
@@ -159,12 +184,15 @@ class HomeScreen extends StatelessWidget {
                     message: provider.searchQuery.isNotEmpty
                         ? 'Try searching with different keywords.'
                         : 'No reminders in this view. Tap the button below to add one.',
-                    actionLabel: provider.searchQuery.isEmpty
-                        ? 'Add Reminder'
-                        : null,
-                    onActionPressed: provider.searchQuery.isEmpty
-                        ? () => _navigateToCreateTask(context)
-                        : null,
+                    actionLabel: provider.searchQuery.isNotEmpty
+                        ? 'Clear Search'
+                        : 'Add Reminder',
+                    actionIcon: provider.searchQuery.isNotEmpty
+                        ? Icons.clear_rounded
+                        : Icons.add,
+                    onActionPressed: provider.searchQuery.isNotEmpty
+                        ? () => _clearSearch(provider)
+                        : () => _navigateToCreateTask(context),
                   ),
                 )
               else

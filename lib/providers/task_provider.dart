@@ -85,6 +85,12 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Clears active search query.
+  void clearSearch() {
+    _searchQuery = '';
+    notifyListeners();
+  }
+
   /// Loads tasks from local repository into memory.
   Future<void> loadTasks() async {
     _isLoading = true;
