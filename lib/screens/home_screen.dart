@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
+import '../widgets/ai_confirmation_sheet.dart';
 import '../widgets/empty_state_view.dart';
 import '../widgets/task_card.dart';
 import '../widgets/task_stats_card.dart';
@@ -77,6 +78,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome_rounded),
+            tooltip: 'AI Reminder Assistant',
+            color: AppColors.primary,
+            onPressed: () => _openAiAssistant(context),
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: Consumer<TaskProvider>(
         builder: (context, provider, _) {
@@ -340,5 +350,9 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (_) => AddEditTaskScreen(taskToEdit: task),
       ),
     );
+  }
+
+  void _openAiAssistant(BuildContext context) {
+    AiConfirmationSheet.show(context);
   }
 }

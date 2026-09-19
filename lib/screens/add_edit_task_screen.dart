@@ -12,8 +12,13 @@ import '../services/notification_service.dart';
 /// Form screen used to either create a new reminder or edit an existing one.
 class AddEditTaskScreen extends StatefulWidget {
   final Task? taskToEdit;
+  final Task? initialDraft;
 
-  const AddEditTaskScreen({super.key, this.taskToEdit});
+  const AddEditTaskScreen({
+    super.key,
+    this.taskToEdit,
+    this.initialDraft,
+  });
 
   @override
   State<AddEditTaskScreen> createState() => _AddEditTaskScreenState();
@@ -37,7 +42,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
   @override
   void initState() {
     super.initState();
-    final task = widget.taskToEdit;
+    final task = widget.taskToEdit ?? widget.initialDraft;
 
     _titleController = TextEditingController(text: task?.title ?? '');
     _descriptionController =
