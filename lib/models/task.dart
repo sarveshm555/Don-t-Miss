@@ -50,9 +50,16 @@ class Task {
   /// Checks if this task repeats on a schedule.
   bool get isRecurring => recurrence != Recurrence.none;
 
-  /// Generates a positive 32-bit integer identifier for notification scheduling.
+  /// Generates a deterministic positive 31-bit integer identifier for notification scheduling.
+  /// Uses 32-bit FNV-1a hashing masked to positive signed 32-bit bounds (0 to 0x7FFFFFFF)
+  /// ensuring collision resistance across a 2.14-billion ID space without platform-dependent hash skew.
   int get notificationId {
-    return id.hashCode.abs() % 1000000;
+    var hash = 0x811c9dc5;
+    for (var i = 0; i < id.length; i++) {
+      hash ^= id.codeUnitAt(i);
+      hash = (hash * 0x01000193) & 0xFFFFFFFF;
+    }
+    return hash & 0x7FFFFFFF;
   }
 
   /// Creates a copy of this task with the given fields replaced.

@@ -35,7 +35,7 @@ class NotificationService {
       }
 
       const AndroidInitializationSettings androidSettings =
-          AndroidInitializationSettings('app_icon');
+          AndroidInitializationSettings('ic_notification');
 
       const DarwinInitializationSettings iosSettings =
           DarwinInitializationSettings(
@@ -55,6 +55,21 @@ class NotificationService {
           developer.log('Notification tapped with payload: ${response.payload}');
         },
       );
+
+      // Explicitly register notification channel for Android 8.0+ (Oreo)
+      final androidImplementation = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      if (androidImplementation != null) {
+        const channel = AndroidNotificationChannel(
+          channelId,
+          channelName,
+          description: channelDescription,
+          importance: Importance.max,
+        );
+        await androidImplementation.createNotificationChannel(channel);
+      }
 
       _isInitialized = true;
     } catch (e) {
@@ -118,6 +133,9 @@ class NotificationService {
         break;
     }
 
+    // Cleanly purge any existing notification/alarm for this ID before scheduling
+    await cancelTaskNotification(task.notificationId);
+
     try {
       final scheduledDate = tz.TZDateTime.from(targetDateTime, tz.local);
 
@@ -127,7 +145,7 @@ class NotificationService {
         channelDescription: channelDescription,
         importance: Importance.max,
         priority: Priority.high,
-        icon: 'app_icon',
+        icon: 'ic_notification',
         styleInformation: BigTextStyleInformation(
           task.description.isNotEmpty ? task.description : 'Your reminder is due now!',
           contentTitle: task.title,
@@ -142,20 +160,40 @@ class NotificationService {
         iOS: const DarwinNotificationDetails(),
       );
 
-      await _notificationsPlugin.zonedSchedule(
-        task.notificationId,
-        task.title,
-        task.description.isNotEmpty
-            ? task.description
-            : 'Don\'t miss this: ${task.title}',
-        scheduledDate,
-        notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: matchDateTimeComponents,
-        payload: task.id,
-      );
+      // Attempt exact alarm scheduling; gracefully fallback to inexact if exact alarms are restricted
+      try {
+        await _notificationsPlugin.zonedSchedule(
+          task.notificationId,
+          task.title,
+          task.description.isNotEmpty
+              ? task.description
+              : 'Don\'t miss this: ${task.title}',
+          scheduledDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: matchDateTimeComponents,
+          payload: task.id,
+        );
+      } catch (exactScheduleError) {
+        developer.log(
+            'Exact alarm scheduling unavailable, falling back to inexact: $exactScheduleError');
+        await _notificationsPlugin.zonedSchedule(
+          task.notificationId,
+          task.title,
+          task.description.isNotEmpty
+              ? task.description
+              : 'Don\'t miss this: ${task.title}',
+          scheduledDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: matchDateTimeComponents,
+          payload: task.id,
+        );
+      }
 
       developer.log('Notification scheduled for "${task.title}" at $scheduledDate (ID: ${task.notificationId}, Repeat: ${task.recurrence.name})');
     } catch (e) {

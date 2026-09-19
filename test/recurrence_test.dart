@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:dont_miss/models/priority.dart';
 import 'package:dont_miss/models/recurrence.dart';
 import 'package:dont_miss/models/task.dart';
@@ -157,6 +157,53 @@ void main() {
       final backToNone = modified.copyWith(recurrence: Recurrence.none);
       expect(backToNone.recurrence, Recurrence.none);
       expect(backToNone.isRecurring, isFalse);
+    });
+  });
+
+  group('Notification ID Reliability Tests', () {
+    test('notificationId is deterministic and positive 31-bit integer', () {
+      final taskA = Task(
+        id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+        title: 'Task A',
+        dueDate: DateTime(2026, 9, 20),
+        dueHour: 10,
+        dueMinute: 0,
+        createdAt: DateTime(2026, 9, 19),
+      );
+
+      final id1 = taskA.notificationId;
+      final id2 = taskA.notificationId;
+
+      expect(id1, id2);
+      expect(id1 >= 0, isTrue);
+      expect(id1 <= 0x7FFFFFFF, isTrue);
+    });
+
+    test('Different task IDs produce distinct notification IDs without collisions', () {
+      final ids = <int>{};
+      final testUuids = [
+        'e0344d18-5a2d-4c31-9f93-c3c6f8516d29',
+        '8b76615b-9759-4089-9a74-d4b8f36c5356',
+        '804daeb0-3bd8-49e0-82d2-8b63cfcb0019',
+        '336b135c-897c-40ad-be00-1c3905cf7eb5',
+        '6cb9ba37-33a8-4bbd-9781-64d852a41d63',
+      ];
+
+      for (final uuid in testUuids) {
+        final task = Task(
+          id: uuid,
+          title: 'Task $uuid',
+          dueDate: DateTime(2026, 9, 20),
+          dueHour: 12,
+          dueMinute: 0,
+          createdAt: DateTime(2026, 9, 19),
+        );
+        expect(task.notificationId >= 0, isTrue);
+        expect(task.notificationId <= 0x7FFFFFFF, isTrue);
+        ids.add(task.notificationId);
+      }
+
+      expect(ids.length, testUuids.length);
     });
   });
 }
