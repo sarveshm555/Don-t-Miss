@@ -1,4 +1,5 @@
 import 'priority.dart';
+import 'recurrence.dart';
 
 /// Immutable model representing a single reminder / task in "Don't Miss".
 class Task {
@@ -9,6 +10,7 @@ class Task {
   final int dueHour;
   final int dueMinute;
   final Priority priority;
+  final Recurrence recurrence;
   final String? url;
   final bool isNotificationEnabled;
   final bool isCompleted;
@@ -22,6 +24,7 @@ class Task {
     required this.dueHour,
     required this.dueMinute,
     this.priority = Priority.medium,
+    this.recurrence = Recurrence.none,
     this.url,
     this.isNotificationEnabled = true,
     this.isCompleted = false,
@@ -44,6 +47,9 @@ class Task {
     return !isCompleted && fullDueDateTime.isBefore(DateTime.now());
   }
 
+  /// Checks if this task repeats on a schedule.
+  bool get isRecurring => recurrence != Recurrence.none;
+
   /// Generates a positive 32-bit integer identifier for notification scheduling.
   int get notificationId {
     return id.hashCode.abs() % 1000000;
@@ -58,6 +64,7 @@ class Task {
     int? dueHour,
     int? dueMinute,
     Priority? priority,
+    Recurrence? recurrence,
     String? url,
     bool? isNotificationEnabled,
     bool? isCompleted,
@@ -71,6 +78,7 @@ class Task {
       dueHour: dueHour ?? this.dueHour,
       dueMinute: dueMinute ?? this.dueMinute,
       priority: priority ?? this.priority,
+      recurrence: recurrence ?? this.recurrence,
       url: url ?? this.url,
       isNotificationEnabled: isNotificationEnabled ?? this.isNotificationEnabled,
       isCompleted: isCompleted ?? this.isCompleted,
@@ -88,6 +96,7 @@ class Task {
       'dueHour': dueHour,
       'dueMinute': dueMinute,
       'priority': priority.name,
+      'recurrence': recurrence.name,
       'url': url,
       'isNotificationEnabled': isNotificationEnabled,
       'isCompleted': isCompleted,
@@ -105,6 +114,7 @@ class Task {
       dueHour: json['dueHour'] as int? ?? 12,
       dueMinute: json['dueMinute'] as int? ?? 0,
       priority: Priority.fromString(json['priority'] as String?),
+      recurrence: Recurrence.fromString(json['recurrence'] as String?),
       url: json['url'] as String?,
       isNotificationEnabled: json['isNotificationEnabled'] as bool? ?? true,
       isCompleted: json['isCompleted'] as bool? ?? false,

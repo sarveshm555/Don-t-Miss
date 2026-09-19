@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+import '../models/recurrence.dart';
 import '../models/task.dart';
 
 /// Central service for initializing, scheduling, and cancelling local notifications.
@@ -73,14 +74,48 @@ class NotificationService {
     return false;
   }
 
-  /// Schedules a notification for a task at its designated date and time.
+  /// Schedules a notification for a task at its designated date and time,
+  /// supporting one-time and recurring (daily, weekly, monthly) schedules.
   Future<void> scheduleTaskNotification(Task task) async {
     if (!task.isNotificationEnabled || task.isCompleted) return;
 
-    final targetDateTime = task.fullDueDateTime;
-    if (targetDateTime.isBefore(DateTime.now())) {
+    DateTime targetDateTime = task.fullDueDateTime;
+    final now = DateTime.now();
+
+    // If one-time and deadline is in the past, skip scheduling
+    if (!task.isRecurring && targetDateTime.isBefore(now)) {
       developer.log('Skipping notification for task "${task.title}": time is in the past.');
       return;
+    }
+
+    // Determine matching components for recurring alarms and advance start time if in past
+    DateTimeComponents? matchDateTimeComponents;
+    switch (task.recurrence) {
+      case Recurrence.daily:
+        matchDateTimeComponents = DateTimeComponents.time;
+        while (targetDateTime.isBefore(now)) {
+          targetDateTime = targetDateTime.add(const Duration(days: 1));
+        }
+        break;
+      case Recurrence.weekly:
+        matchDateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
+        while (targetDateTime.isBefore(now)) {
+          targetDateTime = targetDateTime.add(const Duration(days: 7));
+        }
+        break;
+      case Recurrence.monthly:
+        matchDateTimeComponents = DateTimeComponents.dayOfMonthAndTime;
+        while (targetDateTime.isBefore(now)) {
+          final nextMonth = targetDateTime.month == 12 ? 1 : targetDateTime.month + 1;
+          final nextYear = targetDateTime.month == 12 ? targetDateTime.year + 1 : targetDateTime.year;
+          final daysInNextMonth = DateTime(nextYear, nextMonth + 1, 0).day;
+          final targetDay = task.dueDate.day > daysInNextMonth ? daysInNextMonth : task.dueDate.day;
+          targetDateTime = DateTime(nextYear, nextMonth, targetDay, task.dueHour, task.dueMinute);
+        }
+        break;
+      case Recurrence.none:
+        matchDateTimeComponents = null;
+        break;
     }
 
     try {
@@ -96,7 +131,9 @@ class NotificationService {
         styleInformation: BigTextStyleInformation(
           task.description.isNotEmpty ? task.description : 'Your reminder is due now!',
           contentTitle: task.title,
-          summaryText: "Priority: ${task.priority.label}",
+          summaryText: task.isRecurring
+              ? "Priority: ${task.priority.label} • Repeat: ${task.recurrence.label}"
+              : "Priority: ${task.priority.label}",
         ),
       );
 
@@ -116,10 +153,11 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: matchDateTimeComponents,
         payload: task.id,
       );
 
-      developer.log('Notification scheduled for "${task.title}" at $scheduledDate (ID: ${task.notificationId})');
+      developer.log('Notification scheduled for "${task.title}" at $scheduledDate (ID: ${task.notificationId}, Repeat: ${task.recurrence.name})');
     } catch (e) {
       developer.log('Error scheduling notification for task "${task.title}": $e');
     }

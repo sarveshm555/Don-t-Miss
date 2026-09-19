@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../core/constants/app_colors.dart';
 import '../core/utils/date_time_utils.dart';
 import '../models/priority.dart';
+import '../models/recurrence.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../services/notification_service.dart';
@@ -28,6 +29,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
   late Priority _selectedPriority;
+  late Recurrence _selectedRecurrence;
   late bool _isNotificationEnabled;
 
   bool get _isEditing => widget.taskToEdit != null;
@@ -49,6 +51,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
         : TimeOfDay(hour: (now.hour + 1) % 24, minute: 0);
 
     _selectedPriority = task?.priority ?? Priority.medium;
+    _selectedRecurrence = task?.recurrence ?? Recurrence.none;
     _isNotificationEnabled = task?.isNotificationEnabled ?? true;
   }
 
@@ -137,6 +140,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
         dueHour: _selectedTime.hour,
         dueMinute: _selectedTime.minute,
         priority: _selectedPriority,
+        recurrence: _selectedRecurrence,
         url: url,
         isNotificationEnabled: _isNotificationEnabled,
       );
@@ -150,6 +154,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
         dueHour: _selectedTime.hour,
         dueMinute: _selectedTime.minute,
         priority: _selectedPriority,
+        recurrence: _selectedRecurrence,
         url: url,
         isNotificationEnabled: _isNotificationEnabled,
         createdAt: DateTime.now(),
@@ -368,6 +373,64 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                           if (selected) {
                             setState(() {
                               _selectedPriority = priority;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 24),
+
+              // Repeat Selector
+              _buildSectionLabel('Repeat'),
+              Row(
+                children: Recurrence.values.map((recurrence) {
+                  final isSelected = _selectedRecurrence == recurrence;
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                      child: ChoiceChip(
+                        label: Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                recurrence.icon,
+                                size: 15,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textSecondaryLight),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(recurrence.label),
+                            ],
+                          ),
+                        ),
+                        selected: isSelected,
+                        selectedColor: AppColors.primary,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : null,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(
+                            color: isSelected
+                                ? AppColors.primary
+                                : (isDark
+                                    ? AppColors.borderDark
+                                    : AppColors.borderLight),
+                          ),
+                        ),
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _selectedRecurrence = recurrence;
                             });
                           }
                         },
